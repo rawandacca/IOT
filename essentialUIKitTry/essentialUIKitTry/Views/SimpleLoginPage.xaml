@@ -116,7 +116,7 @@
                 </StackLayout>
             </ScrollView>
 
-            <!--  Close button  -->
+            <!--  Close button  
             <buttons:SfButton
                 Margin="8"
                 Command="{Binding BackButtonCommand}"
@@ -125,7 +125,7 @@
                 Style="{StaticResource IconButtonStyle}"
                 Text="{StaticResource Close}"
                 TextColor="{DynamicResource Steel}"
-                VerticalOptions="Start" />
+                VerticalOptions="Start" />-->
 
         </Grid>
     </ContentPage.Content>

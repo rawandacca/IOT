@@ -12,6 +12,7 @@ using Azure.Storage.Blobs.Models;
 using System.IO;
 using System.Reflection;
 using System.Net.Http.Headers;
+using Plugin.LocalNotifications;
 
 namespace essentialUIKitTry
 {
@@ -20,6 +21,8 @@ namespace essentialUIKitTry
         private static string BaseUri = "https://lockerfunctionapp.azurewebsites.net/api/";
         private static string GetUri = BaseUri + "get-locker/";
         private static string LockerFuncUri = BaseUri + "LockerFunc";
+        private static int timeNotificationBaseId = 100;
+
 
         public static async System.Threading.Tasks.Task<bool> IsAvailableAsync(Int32 locker_num)
         {
@@ -74,6 +77,14 @@ namespace essentialUIKitTry
             locker.user_key = App.m_myUserKey;
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-occupy";
             setLockerInCloud(locker, FuncUri);
+            locker = GetLocker(locker_num);
+            double timeToNotify = (locker.release_time - DateTimeOffset.Now).TotalMinutes - 5;
+            CrossLocalNotifications.Current.Show("Locker Stocker", "Only 5 minutes left till locker " + locker_num + " gets released!",
+                AzureApi.timeNotificationBaseId + locker_num, DateTime.Now.AddMinutes(timeToNotify));
+            CrossLocalNotifications.Current.Show("Locker Stocker", "locker " + locker_num + " got released!",
+                AzureApi.timeNotificationBaseId + locker_num, DateTime.Now.AddMinutes(timeToNotify+5));
+
+
         }
         public static void SetAvailable(Int32 locker_num)
         {
@@ -84,6 +95,7 @@ namespace essentialUIKitTry
             locker.user_key = App.m_myUserKey;
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-available";
             setLockerInCloud(locker, FuncUri);
+            CrossLocalNotifications.Current.Cancel(timeNotificationBaseId + locker_num);
         }
 
         public static void SetUnlock(Locker locker)
@@ -113,13 +125,13 @@ namespace essentialUIKitTry
             }
         }
 
-        public static async void SetCostsGlobally(int newCost)
+        public static  void SetCostsGlobally(int newCost)
         {
             int numOfRows = 4;
             for (int i = 1; i <= numOfRows; i++)
                 SetCostsByRow(i, newCost);
         }
-        public static async void SetCostsByRow(int rowNum, int newCost)
+        public static  void SetCostsByRow(int rowNum, int newCost)
         {
             int rowIdx = rowNum - 1;
             int lockersInRow = 5;
@@ -131,7 +143,7 @@ namespace essentialUIKitTry
                 //lockerRows[rowIdx].Add(tmpLocker);
             }
         }
-        public static async void SetCostsByLockerId(int lockerId, int newCost)
+        public static void SetCostsByLockerId(int lockerId, int newCost)
         {
             Locker locker = AzureApi.GetLocker(lockerId);
             locker.price_per_hour = newCost;

@@ -52,7 +52,7 @@ namespace essentialUIKitTry.Views
                     .WithParentActivityOrWindow(App.UIParent)
                     .ExecuteAsync();*/
 
-                await Navigation.PushAsync(new ChooseALocker(authenticationResult));
+                await Navigation.PopAsync();
             }
             catch (MsalClientException)
             {

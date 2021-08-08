@@ -115,11 +115,11 @@ namespace essentialUIKitTry.Views
             }
             SetLocker(this.locker.Id);
         }
-        async void HandleReleaseBtn(object sender, System.EventArgs e)
+        void HandleReleaseBtn(object sender, System.EventArgs e)
         {
             AzureApi.SetAvailable(this.locker.Id);
             this.locker.available = true;
-            await Navigation.PopAsync();
+            Navigation.PopAsync();
 
         }
 

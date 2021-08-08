@@ -23,13 +23,14 @@ namespace essentialUIKitTry.Views
         {
             this.InitializeComponent();
         }
+
         protected override async void OnAppearing()
         {
             try
             {
                 // Look for existing account
                 //var accounts = await App.AuthenticationClient.GetAccountsAsync();
-                IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
+                 IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
 
                 //if (accounts.Count() >= 1)
                 //{

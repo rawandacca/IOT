@@ -24,7 +24,7 @@ namespace essentialUIKitTry
     public partial class ChooseALocker : ContentPage
     {
 
-        public List<Locker>[] lockerRows = {new List<Locker>(), new List<Locker>(), new List<Locker>(), new List<Locker>() };
+        public List<Locker>[] lockerRows = { new List<Locker>(), new List<Locker>(), new List<Locker>(), new List<Locker>() };
         private HubConnection connection;
         private int notifacationNum = 0;
         private AuthenticationResult authenticationResult;
@@ -61,6 +61,14 @@ namespace essentialUIKitTry
 
             });
 
+            connection.On<object>("available", (item) =>
+            {
+
+                SetLockerList();
+
+
+            });
+
 
             connection.On<object>("unlock", (item) =>
              {
@@ -86,7 +94,7 @@ namespace essentialUIKitTry
 
         protected override void OnAppearing()
         {
-            
+
             SetLockerList();
             base.OnAppearing();
         }
@@ -99,26 +107,25 @@ namespace essentialUIKitTry
                 var handler = new JwtSecurityTokenHandler();
                 var data = handler.ReadJwtToken(authenticationResult.IdToken);
                 var claims = data.Claims.ToList();
-                App.m_myUserKey = data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value;
-                /*rawan change*/
-                App.m_adminMode = data.Claims.FirstOrDefault(x => x.Type.Equals("name")).Value == "ADMIN";
-                //App.m_adminMode = false;
+               
+                App.m_adminMode = data.Claims.FirstOrDefault(x => x.Type.Equals("surname")).Value == "ADMIN";
+               
                 if (data != null)
                 {
                     if (!App.m_adminMode)
                     {
                         this.name.Text = $"Hi {data.Claims.FirstOrDefault(x => x.Type.Equals("name")).Value}!";
                         this.mid_title.Text = "Please Choose Your Locker:";
-                        /*rawan change*/
-                        //this.balance.Text = $"You have { data.Claims.FirstOrDefault(x => x.Type.Equals("givenName")).Value} Shekels in your account.";
-                        this.balance.Text = $"You have 0 shkels";
+                 
+                        this.balance.Text = $"You have { data.Claims.FirstOrDefault(x => x.Type.Equals("givenName")).Value} Shekels in your account.";
+                        //this.balance.Text = $"You have 0 shkels";
                         //this.email.Text = $"email: {data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value}";
                     }
                     else
                     {
                         this.name.Text = $"Hi {data.Claims.FirstOrDefault(x => x.Type.Equals("name")).Value}!";
                         this.mid_title.Text = "Here are all your lockers: ";
-                        
+
                         //this.email.Text = $"email: {data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value}";
                     }
                     //this.name.Text = $"Welcome {data.Claims.FirstOrDefault(x => x.Type.Equals("displayName")).Value}";
@@ -128,24 +135,7 @@ namespace essentialUIKitTry
         }
 
 
-        async void SignOutBtn_Clicked(System.Object sender, System.EventArgs e)
-        {
-            AuthenticationResult result;
-            try
-            {
-                result = await App.AuthenticationClient
-                    .AcquireTokenInteractive(Constants.Scopes)
-                    .WithPrompt(Prompt.ForceLogin)
-                    .WithParentActivityOrWindow(App.UIParent)
-                    .ExecuteAsync();
-
-                await Navigation.PushAsync(new ChooseALocker(result));
-            }
-            catch (MsalClientException)
-            {
-
-            }
-        }
+        
         Button getBtnForLocker(Locker locker)
         {
             int btnTimingFontSize = 8;
@@ -198,6 +188,7 @@ namespace essentialUIKitTry
 
             for (int rowIdx = 0; rowIdx < numOfRows; rowIdx++)
             {
+                lockerRows[rowIdx].Clear();
                 for (int lockerInRowIdx = 0; lockerInRowIdx < lockersInRow; lockerInRowIdx++)
                 {
                     Locker tmpLocker = AzureApi.GetLocker(rowIdx * lockersInRow + lockerInRowIdx + 1);
@@ -225,8 +216,9 @@ namespace essentialUIKitTry
                 ModeInfoLbl.Text = "You are logged-in as Admin";
                 ModeInfoLbl.TextColor = Color.DarkGreen;
                 ModeInfoLbl.FontAttributes = FontAttributes.Bold;
+                balance.IsVisible = false;
 
-                int btnFontSize = 9;
+                /*int btnFontSize = 9;
                 int btn_width = 55;
                 int btn_height = 45;
                 Button SetCostBtn = new Button()
@@ -235,19 +227,36 @@ namespace essentialUIKitTry
                     TextColor = Color.White,
                     Text = "set costs",
                     HorizontalOptions = LayoutOptions.Start,
+                    VerticalOptions = LayoutOptions.Start,
+                    
                     FontSize = btnFontSize,
                     WidthRequest = btn_width,
                     HeightRequest = btn_height,
                     Padding = new Xamarin.Forms.Thickness(5, 2)
                 };
                 SetCostBtn.Clicked += NavigateToCostSelectionPage;
-                ChooseALockerMainStack.Children.Add(SetCostBtn);
+                ChooseALockerMainStack.Children.Add(SetCostBtn);*/
+            }
+            else
+            {
+                SetCostsButton.IsVisible = false;
             }
         }
 
         async void NavigateToCostSelectionPage(object sender, System.EventArgs e)
         {
             await Navigation.PushAsync(new SetCostsMainPage());
+        }
+
+
+        async void OnAlertYesNoClicked(int locker_id)
+        {
+            bool answer = await DisplayAlert("locker number " + locker_id, "click yes to occupy locker", "Yes", "No");
+            if (answer)
+            {
+                AzureApi.SetOccupy(locker_id, "userKey");
+                await Navigation.PushAsync(new Locker1OrderedSuccess(locker_id, authenticationResult));
+            }
         }
 
         async void Locker_ClickedAsync(object sender, System.EventArgs e)
@@ -257,8 +266,8 @@ namespace essentialUIKitTry
 
             if (locker.available)
             {
-                AzureApi.SetOccupy(locker_id, "userKey");
-                await Navigation.PushAsync(new Locker1OrderedSuccess(locker_id, authenticationResult));
+                OnAlertYesNoClicked(locker_id);
+
             }
             else if (locker.user_key == App.m_myUserKey)
             {
@@ -274,6 +283,25 @@ namespace essentialUIKitTry
                 await Navigation.PushAsync(new Locker2OrderFailed("" + locker_id));
             }
             SetLockerList();
+        }
+        async void OnSignOutClicked(object sender, System.EventArgs e)
+        {
+            AuthenticationResult result;
+            try
+            {
+                /*result = await App.AuthenticationClient
+                    .AcquireTokenInteractive(Constants.Scopes)
+                    .WithPrompt(Prompt.ForceLogin)
+                    .WithParentActivityOrWindow(App.UIParent)
+                    .ExecuteAsync();*/
+                Navigation.RemovePage(this);
+                IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
+                await App.AuthenticationClient.RemoveAsync(accounts.FirstOrDefault());
+                await Navigation.PushAsync(new SimpleLoginPage());
+            }
+            catch (MsalClientException)
+            {
+            }
         }
     }
 }

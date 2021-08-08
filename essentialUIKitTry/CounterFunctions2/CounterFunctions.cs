@@ -17,7 +17,8 @@ namespace CounterFunctions
     public static class CounterFunctions
     {
         private static readonly AzureSignalR SignalR = new AzureSignalR(Environment.GetEnvironmentVariable("AzureSignalRconnectionString"));
-        const double interval60Minutes = 60 * 5 * 1000; // milliseconds to one hour
+        const double interval60Minutes = 60 * 60 * 1000; // milliseconds to one hour
+        private static Timer checkForTime;
 
 
         [FunctionName("negotiate")]
@@ -268,6 +269,7 @@ namespace CounterFunctions
             locker.user_key = "";
             TableOperation updateOperation = TableOperation.Replace(locker);
             await cloudTable.ExecuteAsync(updateOperation);
+            checkForTime = null;
             await signalRMessages.AddAsync(
                 new SignalRMessage
                 {
@@ -280,8 +282,9 @@ namespace CounterFunctions
             [Table("LockerRoom")] CloudTable cloudTable,
             [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
         {
-            Timer checkForTime = new Timer(interval60Minutes);
+            checkForTime = new Timer(interval60Minutes);
             checkForTime.Elapsed += (sender, args) => checkForTime_Elapsed(sender, locker, cloudTable, signalRMessages);
+            checkForTime.AutoReset = false;
             checkForTime.Enabled = true;
         }
 

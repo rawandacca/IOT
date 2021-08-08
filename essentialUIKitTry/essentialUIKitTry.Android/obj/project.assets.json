@@ -8501,11 +8501,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
+      "projectUniqueName": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
       "projectName": "essentialUIKitTry.Android",
-      "projectPath": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
+      "projectPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
       "packagesPath": "C:\\Users\\rawan\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\obj\\",
+      "outputPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\obj\\",
       "projectStyle": "PackageReference",
       "skipContentFileWrite": true,
       "fallbackFolders": [
@@ -8528,8 +8528,8 @@
       "frameworks": {
         "monoandroid11.0": {
           "projectReferences": {
-            "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj": {
-              "projectPath": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj"
+            "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj": {
+              "projectPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj"
             }
           }
         }
