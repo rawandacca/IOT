@@ -146,3 +146,17 @@ Xamarin.GooglePlayServices.SafetyNet.dll
 Xamarin.GooglePlayServices.Stats.dll
 Xamarin.GooglePlayServices.Tasks.dll
 Microsoft.Identity.Client.dll
+Plugin.LocalNotification.dll
+Plugin.LocalNotifications.dll
+Xamarin.AndroidX.Lifecycle.Service.dll
+Xamarin.AndroidX.Room.Common.dll
+Xamarin.AndroidX.Room.Runtime.dll
+Xamarin.AndroidX.Sqlite.dll
+Xamarin.AndroidX.Sqlite.Framework.dll
+Xamarin.AndroidX.Work.Runtime.dll
+androidx.sqlite.sqlite.aar
+androidx.sqlite.sqlite-framework.aar
+androidx.room.room-runtime.aar
+androidx.lifecycle.lifecycle-service.aar
+androidx.work.work-runtime.aar
+essentialUIKitTry.dll

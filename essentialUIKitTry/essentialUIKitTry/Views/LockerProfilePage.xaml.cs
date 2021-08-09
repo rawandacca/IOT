@@ -115,11 +115,15 @@ namespace essentialUIKitTry.Views
             }
             SetLocker(this.locker.Id);
         }
-        void HandleReleaseBtn(object sender, System.EventArgs e)
+        async void HandleReleaseBtn(object sender, System.EventArgs e)
         {
-            AzureApi.SetAvailable(this.locker.Id);
-            this.locker.available = true;
-            Navigation.PopAsync();
+            bool answer = await DisplayAlert("You will not be refunded for the remaining time on the clock", "are you sure you want to release the locker", "Yes", "No");
+            if (answer)
+            {
+                AzureApi.SetAvailable(this.locker);
+                this.locker.available = true;
+                await Navigation.PopAsync();
+            }
 
         }
 

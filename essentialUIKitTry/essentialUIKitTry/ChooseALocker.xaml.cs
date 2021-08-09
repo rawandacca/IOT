@@ -6,7 +6,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using CounterFunctions;
-
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 using Microsoft.Identity.Client;
@@ -28,15 +27,15 @@ namespace essentialUIKitTry
         private HubConnection connection;
         private int notifacationNum = 0;
         private AuthenticationResult authenticationResult;
+
+        UserBalance userBalance;
         public ChooseALocker(AuthenticationResult authResult)
         {
-            //just in case so you can call this code several times np..
             authenticationResult = authResult;
-            //var name = authenticationResult.Account.Username;
             InitializeComponent();
             ConfigSignalR();
             GetClaims();
-            //SetLockerList();
+            
         }
 
 
@@ -55,18 +54,16 @@ namespace essentialUIKitTry
 
             connection.On<object>("Occupy", (item) =>
             {
-
                 SetLockerList();
-
-
             });
 
             connection.On<object>("available", (item) =>
             {
-
                 SetLockerList();
-
-
+                if(NavigationPage.CurrentPageProperty == LockerProfilePage.NavigationProperty)
+                {
+                    Navigation.PopAsync();
+                }
             });
 
 
@@ -74,11 +71,16 @@ namespace essentialUIKitTry
              {
                  string itemString = item.ToString();
                  Locker lockerItem = JsonConvert.DeserializeObject<Locker>(itemString);
-                 if (App.m_myUserKey.Equals(lockerItem.user_key))
+                 if (userBalance.user_key.Equals(lockerItem.user_key))
                  {
                      CrossLocalNotifications.Current.Show("Locker Stocker", "locker " + lockerItem.Id + " got unlocked !", notifacationNum++, DateTime.Now);
                  }
              });
+
+            connection.On<object>("setCosts", (item) =>
+            {
+                SetLockerList();
+            });
 
 
             try
@@ -101,6 +103,7 @@ namespace essentialUIKitTry
 
         private void GetClaims()
         {
+            userBalance = new UserBalance();
             var token = authenticationResult.IdToken;
             if (token != null)
             {
@@ -109,7 +112,8 @@ namespace essentialUIKitTry
                 var claims = data.Claims.ToList();
                
                 App.m_adminMode = data.Claims.FirstOrDefault(x => x.Type.Equals("surname")).Value == "ADMIN";
-               
+                userBalance.user_key = data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value;
+                userBalance.balance = AzureApi.GetBalance(userBalance.user_key);
                 if (data != null)
                 {
                     if (!App.m_adminMode)
@@ -117,26 +121,21 @@ namespace essentialUIKitTry
                         this.name.Text = $"Hi {data.Claims.FirstOrDefault(x => x.Type.Equals("name")).Value}!";
                         this.mid_title.Text = "Please Choose Your Locker:";
                  
-                        this.balance.Text = $"You have { data.Claims.FirstOrDefault(x => x.Type.Equals("givenName")).Value} Shekels in your account.";
-                        //this.balance.Text = $"You have 0 shkels";
-                        //this.email.Text = $"email: {data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value}";
-                    }
+                        this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
+                   }
                     else
                     {
                         this.name.Text = $"Hi {data.Claims.FirstOrDefault(x => x.Type.Equals("name")).Value}!";
                         this.mid_title.Text = "Here are all your lockers: ";
-
-                        //this.email.Text = $"email: {data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value}";
                     }
-                    //this.name.Text = $"Welcome {data.Claims.FirstOrDefault(x => x.Type.Equals("displayName")).Value}";
-
+                 
                 }
             }
         }
 
 
         
-        Button getBtnForLocker(Locker locker)
+        Button getBtnForLocker(Locker locker, int num)
         {
             int btnTimingFontSize = 8;
             int btnAvailableFontSize = 12;
@@ -144,17 +143,18 @@ namespace essentialUIKitTry
             int btn_height = 80;
             Button tmp_btn = new Button()
             {
-                Text = "L" + locker.Id,
+                Text = "L" + num,
                 StyleId = "" + locker.Id,
                 WidthRequest = btn_width,
                 HeightRequest = btn_height,
                 FontSize = btnAvailableFontSize
             };
-            if ((!locker.available) && (locker.user_key == App.m_myUserKey))
+            if ((!locker.available) && (locker.user_key == userBalance.user_key))
             {
                 tmp_btn.BackgroundColor = Color.LightSteelBlue;
                 tmp_btn.Padding = new Xamarin.Forms.Thickness(5, 2);
                 tmp_btn.Text = "Time Remaining\n" + AzureApi.GetRemainingTime(locker);
+                
                 tmp_btn.FontSize = btnTimingFontSize;
             }
             else if (locker.available)
@@ -185,22 +185,22 @@ namespace essentialUIKitTry
             ButtonsRow4.Children.Clear();
             //ChooseALockerMainStack.Children.Clear();
 
-
+            List<Locker> lockersList = AzureApi.GetAllLockers();
             for (int rowIdx = 0; rowIdx < numOfRows; rowIdx++)
             {
                 lockerRows[rowIdx].Clear();
                 for (int lockerInRowIdx = 0; lockerInRowIdx < lockersInRow; lockerInRowIdx++)
                 {
-                    Locker tmpLocker = AzureApi.GetLocker(rowIdx * lockersInRow + lockerInRowIdx + 1);
+                    Locker tmpLocker = lockersList[rowIdx * lockersInRow + lockerInRowIdx ];
                     lockerRows[rowIdx].Add(tmpLocker);
                 }
             }
             for (int idxInRow = 0; idxInRow < lockersInRow; idxInRow++)
             {
-                Button btn1 = getBtnForLocker(lockerRows[0][idxInRow]);
-                Button btn2 = getBtnForLocker(lockerRows[1][idxInRow]);
-                Button btn3 = getBtnForLocker(lockerRows[2][idxInRow]);
-                Button btn4 = getBtnForLocker(lockerRows[3][idxInRow]);
+                Button btn1 = getBtnForLocker(lockerRows[0][idxInRow], 0 * idxInRow + idxInRow + 1);
+                Button btn2 = getBtnForLocker(lockerRows[1][idxInRow], 1 * idxInRow + idxInRow + 1);
+                Button btn3 = getBtnForLocker(lockerRows[2][idxInRow], 2 * idxInRow + idxInRow + 1);
+                Button btn4 = getBtnForLocker(lockerRows[3][idxInRow], 3 * idxInRow + idxInRow + 1);
 
                 btn1.Clicked += Locker_ClickedAsync;
                 btn2.Clicked += Locker_ClickedAsync;
@@ -217,30 +217,25 @@ namespace essentialUIKitTry
                 ModeInfoLbl.TextColor = Color.DarkGreen;
                 ModeInfoLbl.FontAttributes = FontAttributes.Bold;
                 balance.IsVisible = false;
-
-                /*int btnFontSize = 9;
-                int btn_width = 55;
-                int btn_height = 45;
-                Button SetCostBtn = new Button()
-                {
-                    BackgroundColor = Color.Black,
-                    TextColor = Color.White,
-                    Text = "set costs",
-                    HorizontalOptions = LayoutOptions.Start,
-                    VerticalOptions = LayoutOptions.Start,
-                    
-                    FontSize = btnFontSize,
-                    WidthRequest = btn_width,
-                    HeightRequest = btn_height,
-                    Padding = new Xamarin.Forms.Thickness(5, 2)
-                };
-                SetCostBtn.Clicked += NavigateToCostSelectionPage;
-                ChooseALockerMainStack.Children.Add(SetCostBtn);*/
+                RechargeButton.IsVisible = false;
             }
             else
             {
                 SetCostsButton.IsVisible = false;
             }
+        }
+
+        async void RechargeBalanceButtonClicked(object sender, System.EventArgs e)
+        {
+            string result = await DisplayPromptAsync("Recharge balance", "how much would you like to recharge? maximum is 999 nis", maxLength: 3 , keyboard: Keyboard.Numeric);
+            int balance;
+            if (int.TryParse(result, out balance))
+            {
+                userBalance.balance += balance;
+                AzureApi.SetUserBalance(userBalance);
+                this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
+            }
+            
         }
 
         async void NavigateToCostSelectionPage(object sender, System.EventArgs e)
@@ -249,14 +244,34 @@ namespace essentialUIKitTry
         }
 
 
-        async void OnAlertYesNoClicked(int locker_id)
+        async Task<bool> setTimeToOccupyLockerAlert(Locker locker)
         {
-            bool answer = await DisplayAlert("locker number " + locker_id, "click yes to occupy locker", "Yes", "No");
-            if (answer)
+            if (!App.m_adminMode)
             {
-                AzureApi.SetOccupy(locker_id, "userKey");
-                await Navigation.PushAsync(new Locker1OrderedSuccess(locker_id, authenticationResult));
+                if (userBalance.balance < locker.price_per_hour * 0.5)
+                    return false;
+                string result = await DisplayPromptAsync("occupy locker, id:" + locker.Id, "Insert time in minutes: between 30 and 999 mins", maxLength: 3, keyboard: Keyboard.Numeric);
+                if (result != null)
+                {
+                    double minutesToHours = double.Parse(result) / 60;
+                    if (userBalance.balance < locker.price_per_hour * minutesToHours)
+                        return false;
+                    bool answer = await DisplayAlert("You will be charged " + locker.price_per_hour * minutesToHours + " NIS", "Would you like to continue?", "Yes", "No");
+                    if (answer)
+                    {
+                        locker.user_key = userBalance.user_key;
+                        locker.release_time = DateTimeOffset.Now.AddHours(minutesToHours);
+                        AzureApi.SetOccupy(locker);
+                        userBalance.balance -= (locker.price_per_hour * minutesToHours);
+                        AzureApi.SetUserBalance(userBalance);
+                        this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
+                        await Navigation.PushAsync(new Locker1OrderedSuccess(locker.Id, authenticationResult));
+                    }
+                }
             }
+            return true;
+
+            
         }
 
         async void Locker_ClickedAsync(object sender, System.EventArgs e)
@@ -266,10 +281,13 @@ namespace essentialUIKitTry
 
             if (locker.available)
             {
-                OnAlertYesNoClicked(locker_id);
+                bool canOccupy = await setTimeToOccupyLockerAlert(locker);
+                if (!canOccupy)
+                    await DisplayAlert("Please recharge", "You must have at least " + locker.price_per_hour * 0.5 + " to occupy this locker", "OK");
+                
 
             }
-            else if (locker.user_key == App.m_myUserKey)
+            else if (locker.user_key == userBalance.user_key)
             {
                 await Navigation.PushAsync(new LockerProfilePage(locker_id));
             }
@@ -289,11 +307,7 @@ namespace essentialUIKitTry
             AuthenticationResult result;
             try
             {
-                /*result = await App.AuthenticationClient
-                    .AcquireTokenInteractive(Constants.Scopes)
-                    .WithPrompt(Prompt.ForceLogin)
-                    .WithParentActivityOrWindow(App.UIParent)
-                    .ExecuteAsync();*/
+               
                 Navigation.RemovePage(this);
                 IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
                 await App.AuthenticationClient.RemoveAsync(accounts.FirstOrDefault());

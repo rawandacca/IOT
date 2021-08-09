@@ -13,7 +13,7 @@
     
     
     <StackLayout x:Name="ChooseALockerMainStack" >
-        <Label x:Name="name" HorizontalOptions="Center" FontSize="40" FontFamily="Arial" />
+        <Label x:Name="name" HorizontalOptions="Center" FontSize="30" FontFamily="Arial" />
         <Label x:Name="ModeInfoLbl" FontSize="18" FontFamily="Arial" HorizontalOptions="Center"  />
         <Label x:Name="balance" FontSize="20" FontFamily="Arial"/>
         <Label x:Name="mid_title" FontSize="25" FontFamily="Arial"  />
@@ -35,6 +35,16 @@
                     WidthRequest = "140"
                     HeightRequest =  "45" 
                     Clicked = "NavigateToCostSelectionPage"  />
+        <Button
+                    x:Name="RechargeButton"
+                    Text ="Recharge balance"
+                    BackgroundColor = "DarkSlateBlue"
+                    TextColor = "White"
+                    HorizontalOptions ="Center"        
+                    FontSize = "12"
+                    WidthRequest = "200"
+                    HeightRequest =  "40" 
+                    Clicked = "RechargeBalanceButtonClicked"  />
 
         <!--  Sign Out Button -->
 

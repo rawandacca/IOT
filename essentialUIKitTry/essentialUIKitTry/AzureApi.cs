@@ -60,6 +60,41 @@ namespace essentialUIKitTry
                 }
             }
         }
+        public static List<Locker> GetAllLockers()
+        {
+            string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/get-all-lockers";
+            using (var client = new HttpClient())
+            using (var request = new HttpRequestMessage(HttpMethod.Post, FuncUri))
+            {
+                var json = JsonConvert.SerializeObject("");
+                using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                {
+                    var response = client.GetStringAsync(FuncUri);
+                    List<Locker>  lockers = JsonConvert.DeserializeObject<List<Locker>>(response.Result.ToString());
+                    Console.WriteLine(response);
+
+                    return lockers;
+                }
+            }
+        }
+        public static double GetBalance(string user_key)
+        {
+            string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/get-balance/" + user_key;
+            using (var client = new HttpClient())
+            using (var request = new HttpRequestMessage(HttpMethod.Post, FuncUri))
+            {
+                var json = JsonConvert.SerializeObject("");
+                using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                {
+                    var response = client.GetStringAsync(FuncUri);
+                    double balance = JsonConvert.DeserializeObject<double>(response.Result.ToString());
+                    Console.WriteLine(response);
+
+                    return balance;
+                }
+            }
+        }
+
         public static string GetRemainingTime(Locker locker)
         {
             return ("" + (locker.release_time - DateTimeOffset.Now.AddHours(0))).Split('.')[0];
@@ -67,56 +102,76 @@ namespace essentialUIKitTry
 
 
 
-
-        public static void SetOccupy(Int32 locker_num, string userKey)
+          
+        public static void SetOccupy(Locker locker)//Int32 locker_num, string userKey, DateTimeOffset release_time)
         {
-            var locker = new Locker();
-            locker.Id = locker_num;
-            locker.available = false;
-            locker.locked = true;
-            locker.user_key = App.m_myUserKey;
-            var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-occupy";
+            
+           var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-occupy";
             setLockerInCloud(locker, FuncUri);
-            locker = GetLocker(locker_num);
             double timeToNotify = (locker.release_time - DateTimeOffset.Now).TotalMinutes - 5;
-            CrossLocalNotifications.Current.Show("Locker Stocker", "Only 5 minutes left till locker " + locker_num + " gets released!",
-                AzureApi.timeNotificationBaseId + locker_num, DateTime.Now.AddMinutes(timeToNotify));
-            CrossLocalNotifications.Current.Show("Locker Stocker", "locker " + locker_num + " got released!",
-                AzureApi.timeNotificationBaseId + locker_num, DateTime.Now.AddMinutes(timeToNotify+5));
+            CrossLocalNotifications.Current.Show("Locker Stocker", "Only 5 minutes left till locker " + locker.Id + " gets released!",
+                AzureApi.timeNotificationBaseId + locker.Id, DateTime.Now.AddMinutes(timeToNotify));
+            CrossLocalNotifications.Current.Show("Locker Stocker", "locker " + locker.Id + " got released!",
+                AzureApi.timeNotificationBaseId + locker.Id, DateTime.Now.AddMinutes(timeToNotify+5));
 
 
         }
-        public static void SetAvailable(Int32 locker_num)
+        public static void SetAvailable(Locker locker)
         {
-            var locker = new Locker();
-            locker.Id = locker_num;
-            locker.available = true;
-            locker.locked = true;
-            locker.user_key = App.m_myUserKey;
+            
+           
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-available";
             setLockerInCloud(locker, FuncUri);
-            CrossLocalNotifications.Current.Cancel(timeNotificationBaseId + locker_num);
+            CrossLocalNotifications.Current.Cancel(timeNotificationBaseId + locker.Id);
         }
 
         public static void SetUnlock(Locker locker)
         {
-            locker.locked = false;
+            
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-unlock";
             setLockerInCloud(locker, FuncUri);
         }
+
+        public static void SetUserBalance(UserBalance userBalance)
+        {
+            
+            var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-user-balance";
+            setBalanceInCloud(userBalance, FuncUri);
+        }
+
         public static void SetLock(Locker locker)
         {
-            locker.locked = true;
+            
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-lock";
             setLockerInCloud(locker, FuncUri);
         }
         public static async void setLockerInCloud(Locker locker, string funcUri)
         {
+            try
+            {
+                using (var client = new HttpClient())
+                using (var request = new HttpRequestMessage(HttpMethod.Post, funcUri))
+                {
+                    var json = JsonConvert.SerializeObject(locker);
+                    using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                    {
+                        var response = await client.PostAsync(funcUri, stringContent);
+                        var contents = await response.Content.ReadAsStringAsync();
+                    }
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e.Message);
+            }
+        }
+
+        public static async void setBalanceInCloud(UserBalance userBalance, string funcUri)
+        {
 
             using (var client = new HttpClient())
             using (var request = new HttpRequestMessage(HttpMethod.Post, funcUri))
             {
-                var json = JsonConvert.SerializeObject(locker);
+                var json = JsonConvert.SerializeObject(userBalance);
                 using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
                 {
                     var response = await client.PostAsync(funcUri, stringContent);

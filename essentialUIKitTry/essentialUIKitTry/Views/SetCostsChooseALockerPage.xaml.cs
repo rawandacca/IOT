@@ -47,7 +47,7 @@ namespace essentialUIKitTry
             return tmp_btn;
         }
 
-        async void SetLockerList()
+         void SetLockerList()
         {
             int numOfRows = 4;
             int lockersInRow = 5;
@@ -56,17 +56,18 @@ namespace essentialUIKitTry
             ButtonsRow3.Children.Clear();
             ButtonsRow4.Children.Clear();
             //ChooseALockerMainStack.Children.Clear();
-            
-            
-            for(int rowIdx = 0; rowIdx < numOfRows; rowIdx++)
+
+            List<Locker> lockersList = AzureApi.GetAllLockers();
+            for (int rowIdx = 0; rowIdx < numOfRows; rowIdx++)
             {
+                lockerRows[rowIdx].Clear();
                 for (int lockerInRowIdx = 0; lockerInRowIdx < lockersInRow; lockerInRowIdx++)
                 {
-                    Locker tmpLocker = AzureApi.GetLocker(rowIdx * lockersInRow + lockerInRowIdx + 1);
+                    Locker tmpLocker = lockersList[rowIdx * lockersInRow + lockerInRowIdx];
                     lockerRows[rowIdx].Add(tmpLocker);
                 }
             }
-            for(int idxInRow = 0; idxInRow < lockersInRow; idxInRow++)
+            for (int idxInRow = 0; idxInRow < lockersInRow; idxInRow++)
             {
                 Button btn1 = getBtnForLocker(lockerRows[0][idxInRow]);
                 Button btn2 = getBtnForLocker(lockerRows[1][idxInRow]);

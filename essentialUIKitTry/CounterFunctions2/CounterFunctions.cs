@@ -11,14 +11,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Azure.Cosmos.Table;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
 
 namespace CounterFunctions
 {
     public static class CounterFunctions
     {
         private static readonly AzureSignalR SignalR = new AzureSignalR(Environment.GetEnvironmentVariable("AzureSignalRconnectionString"));
-        const double interval60Minutes = 60 * 60 * 1000; // milliseconds to one hour
-        private static Timer checkForTime;
+       // const double interval60Minutes = 60 * 60 * 1000; // milliseconds to one hour
+      //  const double interval55Minutes = 55 * 60 * 1000; // milliseconds to 55 min
 
 
         [FunctionName("negotiate")]
@@ -52,15 +53,14 @@ namespace CounterFunctions
             [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages,
             ILogger log)
         {
-            log.LogInformation("Setting Occupy.");
-
+            log.LogInformation("SetOccupy function . . .");
             Locker counterRequest = await ExtractContent<Locker>(request);
-
             Locker cloudLocker = await GetOrCreateCounter(cloudTable, counterRequest.Id);
             cloudLocker.available = false;
+            cloudLocker.locked = false;
             cloudLocker.user_key = counterRequest.user_key;
-            cloudLocker.release_time = DateTimeOffset.Now.AddHours(1);
-            ScheduleRelease(cloudLocker, cloudTable, signalRMessages);
+            cloudLocker.release_time = counterRequest.release_time;
+            ScheduleRelease(cloudLocker, cloudTable, signalRMessages , log);
             TableOperation updateOperation = TableOperation.Replace(cloudLocker);
             await cloudTable.ExecuteAsync(updateOperation);
             await signalRMessages.AddAsync(
@@ -84,6 +84,7 @@ namespace CounterFunctions
             Locker counterRequest = await ExtractContent<Locker>(request);
 
             Locker cloudLocker = await GetOrCreateCounter(cloudTable, counterRequest.Id);
+            cloudLocker.locked = true;
             cloudLocker.available = true;
             cloudLocker.release_time = DateTimeOffset.Now.AddHours(0);
             cloudLocker.user_key = "";
@@ -109,14 +110,14 @@ namespace CounterFunctions
             Locker counterRequest = await ExtractContent<Locker>(request);
             Locker cloudLocker = await GetOrCreateCounter(cloudTable, counterRequest.Id);
             cloudLocker.price_per_hour = counterRequest.price_per_hour;
-            ScheduleRelease(cloudLocker, cloudTable, signalRMessages);
+            //ScheduleRelease(cloudLocker, cloudTable, signalRMessages, log);
             TableOperation updateOperation = TableOperation.Replace(cloudLocker);
             await cloudTable.ExecuteAsync(updateOperation);
             await signalRMessages.AddAsync(
                 new SignalRMessage
                 {
-                    Target = "CounterUpdate",
-                    Arguments = new object[] { cloudLocker }
+                    Target = "setCosts",
+                    
                 });
         }
 
@@ -168,6 +169,30 @@ namespace CounterFunctions
                 {
                     Target = "unlock",
                     Arguments = new object[] { cloudCounter }
+                });
+        }
+
+
+        [FunctionName("set-user-balance")]
+        public static async Task SetUserBalance(
+    [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequestMessage request,
+    [Table("usersBalance")] CloudTable cloudTable,
+    [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages,
+    ILogger log)
+        {
+            log.LogInformation("Setting user balance");
+
+            UserBalance userbalanceRequest = await ExtractContent<UserBalance>(request);
+
+            UserBalance userBalance = await GetOrCreateBalance(cloudTable, userbalanceRequest.user_key);
+            userBalance.balance = userbalanceRequest.balance;
+            TableOperation updateOperation = TableOperation.Replace(userBalance);
+            await cloudTable.ExecuteAsync(updateOperation);
+            await signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "set-balance",
+                    Arguments = new object[] { userBalance }
                 });
         }
 
@@ -232,6 +257,36 @@ namespace CounterFunctions
         }
 
 
+        [FunctionName("get-balance")]
+        public static async Task<double> GetBalance(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "get-balance/{user_key}")] HttpRequestMessage request,
+            [Table("usersBalance")] CloudTable cloudTable,
+            string user_key,
+            ILogger log)
+        {
+            log.LogInformation("Getting balance.");
+            UserBalance userbalance = await GetOrCreateBalance(cloudTable, user_key);
+            string userBalance_str = JsonConvert.SerializeObject(userbalance);
+            log.LogInformation("Getting locker. " + userBalance_str);
+            return userbalance.balance;
+            //return locker_str;
+        }
+
+
+        [FunctionName("get-all-lockers")]
+        public static async Task<List<Locker>> GetAllLockers(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "get-all-lockers")] HttpRequestMessage request,
+            [Table("LockerRoom")] CloudTable cloudTable,
+            ILogger log)
+        {
+
+            TableQuery<Locker> idQuery = new TableQuery<Locker>();
+
+            TableQuerySegment<Locker> queryResult = await cloudTable.ExecuteQuerySegmentedAsync(idQuery, null);
+            return queryResult.ToList();
+        }
+
+
         private static async Task<T> ExtractContent<T>(HttpRequestMessage request)
         {
             string connectionRequestJson = await request.Content.ReadAsStringAsync();
@@ -258,34 +313,75 @@ namespace CounterFunctions
             return cloudLocker;
         }
 
+        public static async Task<UserBalance> GetOrCreateBalance(CloudTable cloudTable, string user_key)
+        {
+            TableQuery<UserBalance> idQuery = new TableQuery<UserBalance>()
+                .Where(TableQuery.GenerateFilterCondition("RowKey", QueryComparisons.Equal, user_key));
+
+            TableQuerySegment<UserBalance> queryResult = await cloudTable.ExecuteQuerySegmentedAsync(idQuery, null);
+            UserBalance userbalance = queryResult.FirstOrDefault();
+            if (userbalance == null)
+            {
+                userbalance = new UserBalance { user_key = user_key };
+                TableOperation insertOperation = TableOperation.InsertOrReplace(userbalance);
+                userbalance.PartitionKey = "user";
+                userbalance.RowKey = userbalance.user_key;
+                TableResult tableResult = await cloudTable.ExecuteAsync(insertOperation);
+                return await GetOrCreateBalance(cloudTable, user_key);
+            }
+            return userbalance;
+        }
 
         //public static void checkForTime_Elapsed(object sender, ElapsedEventArgs e, Locker locker)
         public static async void checkForTime_Elapsed(object sender, Locker locker,
             [Table("LockerRoom")] CloudTable cloudTable,
-            [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
+            [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages,
+            ILogger log)
         {
-            locker.locked = false;
+            log.LogInformation("time elapsed now ! ");
             locker.available = true;
+            locker.locked = true;
+            locker.release_time = DateTimeOffset.Now.AddHours(0);
             locker.user_key = "";
             TableOperation updateOperation = TableOperation.Replace(locker);
             await cloudTable.ExecuteAsync(updateOperation);
-            checkForTime = null;
             await signalRMessages.AddAsync(
                 new SignalRMessage
                 {
-                    Target = "time_elapsed",
+                    Target = "available",
                     Arguments = new object[] { locker }
                 });
         }
 
-        public static async void ScheduleRelease(Locker locker,
+        public static void ScheduleRelease(Locker locker,
             [Table("LockerRoom")] CloudTable cloudTable,
-            [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
+            [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages ,
+            ILogger log)
         {
-            checkForTime = new Timer(interval60Minutes);
-            checkForTime.Elapsed += (sender, args) => checkForTime_Elapsed(sender, locker, cloudTable, signalRMessages);
+            log.LogInformation("ScheduleRelease function . . . with " + locker.release_time.Millisecond);
+            log.LogInformation("locker should be released in " + (locker.release_time-DateTimeOffset.Now).TotalMilliseconds);
+            Timer checkForTime;
+            checkForTime = new Timer((locker.release_time - DateTimeOffset.Now).TotalMilliseconds);
+            checkForTime.Elapsed += (sender, args) => checkForTime_Elapsed(sender, locker, cloudTable, signalRMessages , log);
             checkForTime.AutoReset = false;
             checkForTime.Enabled = true;
+        }
+
+        [FunctionName("get-locker-photo")]
+        public static async void GetLockerPhoto(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "get-locker-photo/{id}")] HttpRequestMessage request,
+            int id,
+            ILogger log,
+             [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
+
+        {
+            log.LogInformation("get Locker photo id -  " + id);
+            await signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "TakePhoto",
+                    Arguments = new object[] { id }
+                });
         }
 
     }
