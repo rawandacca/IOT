@@ -24,6 +24,7 @@ using Math = Java.Lang.Math;
 using Orientation = Android.Content.Res.Orientation;
 using Microsoft.AspNetCore.SignalR.Client;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace Camera2Basic
 {
@@ -34,6 +35,8 @@ namespace Camera2Basic
         private static readonly string FRAGMENT_DIALOG = "dialog";
         private int isMonitor = 0;
         private static Button startButton;
+        private azureClient client;
+        private HubConnection connection;
         // Tag for the {@link Log}.
         private static readonly string TAG = "Camera2BasicFragment";
 
@@ -693,22 +696,9 @@ namespace Camera2Basic
             if (v.Id == Resource.Id.picture)
             {
                 azureClient client = azureClient.getInstance();
-                HubConnection connection = await client.getConnection();
-                var numTry = 10;
-                for (int i = 0; i < numTry; i++) {
-                    if (connection == null)
-                    {
-                        Thread.Sleep(1500);
-                    }
-                    else {
-                        break;
-                    }
-                }
-                connection.On<object>("TakePhoto", (item) =>
-                {
-                    TakePicture();
-
-                });
+                connection = await client.getConnection();
+                ConfigSignalR();
+                
             }
             else if (v.Id == Resource.Id.info)
             {
@@ -724,7 +714,36 @@ namespace Camera2Basic
                 }
             }
         }
-     
+
+        public async void ConfigSignalR() {
+
+            var results = await AzureApi.Negotiate();
+            JObject json = JObject.Parse(results);
+            var url = json["url"].ToString();
+            var token = json["accessToken"].ToString();
+
+            connection = new HubConnectionBuilder().WithUrl(url, options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult(token);
+            })
+             .Build();
+
+            connection.On<object>("TakePhoto", (item) =>
+            {
+                TakePicture();
+
+            });
+
+
+            try
+            {
+                await connection.StartAsync();
+            }
+            catch (System.Exception e)
+            {
+                System.Console.WriteLine(e.Message);
+            }
+        }
 
 
         public void SetAutoFlash(CaptureRequest.Builder requestBuilder)

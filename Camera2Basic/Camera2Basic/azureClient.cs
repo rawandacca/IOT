@@ -14,7 +14,7 @@ namespace Camera2Basic
         private static azureClient instance = null ;
 
         private azureClient() {
-             ConfigSignalR();
+            // ConfigSignalR();
         }
         public static azureClient getInstance() {
             if (instance == null) {
@@ -38,12 +38,8 @@ namespace Camera2Basic
             })
              .Build();
 
-            connection.On<object>("Occupy", (item) =>
-            {
+          
 
-
-            });
-            
 
             try
             {
