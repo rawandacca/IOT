@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "0GPkuimW13Xlx3dskGE8uhwUcpNsKD/c07z6rr2Feo7qKts+7BGXhjTjWaeHqedROLL4/5YY5kB0C+470XNCkg==",
+  "dgSpecHash": "p/jHGRQlUpU8hZoDq2NXkhSoUO10ziAfRCJa1Mtp/xSf5n1YHcilH63SZ9EY4WooC0kHe3KL6LTwALaUqj9zLw==",
   "success": true,
-  "projectFilePath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
+  "projectFilePath": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\IOT\\essentialUIKitTry\\essentialUIKitTry.Android\\essentialUIKitTry.Android.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rawan\\.nuget\\packages\\azure.core\\1.15.0\\azure.core.1.15.0.nupkg.sha512",
     "C:\\Users\\rawan\\.nuget\\packages\\azure.storage.blobs\\12.9.1\\azure.storage.blobs.12.9.1.nupkg.sha512",

@@ -13,6 +13,7 @@ using System.IO;
 using System.Reflection;
 using System.Net.Http.Headers;
 using Plugin.LocalNotifications;
+using System.Threading.Tasks;
 
 namespace essentialUIKitTry
 {
@@ -21,8 +22,8 @@ namespace essentialUIKitTry
         private static string BaseUri = "https://lockerfunctionapp.azurewebsites.net/api/";
         private static string GetUri = BaseUri + "get-locker/";
         private static string LockerFuncUri = BaseUri + "LockerFunc";
-        private static int timeNotificationBaseId = 100;
-
+        private static int timeNotificationBaseId = 1000;
+        private static int timeNotification5minsBeforeBaseId = 100;
 
         public static async System.Threading.Tasks.Task<bool> IsAvailableAsync(Int32 locker_num)
         {
@@ -95,6 +96,31 @@ namespace essentialUIKitTry
             }
         }
 
+        public static Task<string> sendSignalToTakePhoto(int id)
+        {
+            Task<string> response= null;
+            try
+            {
+                var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/get-locker-photo/" + id;
+                
+                using (var client = new HttpClient())
+                using (var request = new HttpRequestMessage(HttpMethod.Post, FuncUri))
+                {
+                    var json = JsonConvert.SerializeObject("");
+                    using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                    {
+                        response = client.GetStringAsync(FuncUri);
+                        Console.WriteLine("######################  :" +response.Result.ToString());
+                        return response;
+                    }
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine("###################### error :" + e.Message);
+            }
+            return response;
+        }
+
         public static string GetRemainingTime(Locker locker)
         {
             return ("" + (locker.release_time - DateTimeOffset.Now.AddHours(0))).Split('.')[0];
@@ -109,8 +135,8 @@ namespace essentialUIKitTry
            var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-occupy";
             setLockerInCloud(locker, FuncUri);
             double timeToNotify = (locker.release_time - DateTimeOffset.Now).TotalMinutes - 5;
-            CrossLocalNotifications.Current.Show("Locker Stocker", "Only 5 minutes left till locker " + locker.Id + " gets released!",
-                AzureApi.timeNotificationBaseId + locker.Id, DateTime.Now.AddMinutes(timeToNotify));
+            CrossLocalNotifications.Current.Show("Locker Stocker", "less than 5 minutes left till locker " + locker.Id + " gets released!",
+                AzureApi.timeNotification5minsBeforeBaseId + locker.Id, DateTime.Now.AddMinutes(timeToNotify));
             CrossLocalNotifications.Current.Show("Locker Stocker", "locker " + locker.Id + " got released!",
                 AzureApi.timeNotificationBaseId + locker.Id, DateTime.Now.AddMinutes(timeToNotify+5));
 
@@ -119,10 +145,10 @@ namespace essentialUIKitTry
         public static void SetAvailable(Locker locker)
         {
             
-           
             var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-available";
             setLockerInCloud(locker, FuncUri);
             CrossLocalNotifications.Current.Cancel(timeNotificationBaseId + locker.Id);
+            CrossLocalNotifications.Current.Cancel(timeNotification5minsBeforeBaseId + locker.Id);
         }
 
         public static void SetUnlock(Locker locker)
@@ -243,6 +269,38 @@ namespace essentialUIKitTry
             //upFileStream = File.OpenRead(imagePath);
             await blobClientUpload.UploadAsync(upFileStream, true);
             upFileStream.Close();
+        }
+        /*camera**/
+        public static async void TakeLockerCameraPhoto(string id)
+        {
+            // Create a BlobServiceClient object which will be used to create a container client
+            string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=storageaccountdefau8140;AccountKey=yCQK9mj77GChmhG5Ghe4cyA5ftIMiWZtm/Jg/6W8jMtBUdmoIhuLDEjllq9JCIK5o6XeNWWcfL/vOHWtNX8WKw==;EndpointSuffix=core.windows.net";
+            BlobServiceClient blobServiceClient = new BlobServiceClient(storageConnectionString);
+            //Create a unique name for the container
+            string containerName = "lockerphotos";
+            // Create the container and return a container client object
+            BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+            // Get a reference to a blob
+
+            BlobClient blobClient = containerClient.GetBlobClient("LockerStocker_viaCamera_" + id + ".jpeg");
+            var externalStorage = Android.OS.Environment.ExternalStorageDirectory.AbsolutePath;
+            var lockersPicturesPath = Path.Combine(externalStorage, "Pictures//LockerStocker");
+            var imagePath = Path.Combine(lockersPicturesPath, "LockerStocker_" + id + ".jpeg");
+
+
+            bool exists = System.IO.Directory.Exists(lockersPicturesPath);
+            if (!exists)
+                System.IO.Directory.CreateDirectory(lockersPicturesPath);
+
+
+            // FileStream file = new FileStream(imagePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+
+            using (FileStream file = new FileStream(imagePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.ReadWrite))
+            {
+                blobClient.DownloadTo(file);
+                file.Close();
+            }
+
         }
 
         public static async System.Threading.Tasks.Task<String> Negotiate()

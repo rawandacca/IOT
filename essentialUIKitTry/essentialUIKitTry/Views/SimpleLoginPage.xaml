@@ -91,6 +91,7 @@
 
                         <!--  Sign In For Customer button  -->
                         <buttons:SfButton
+                            x:Name="SignInButton"
                             Grid.Row="5"
                             Margin="0,16"
                             

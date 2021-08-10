@@ -6,6 +6,10 @@ using Plugin.LocalNotification;
 using System;
 using Plugin.LocalNotifications;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR.Client;
+using Newtonsoft.Json;
+using Java.Lang;
+using Newtonsoft.Json.Linq;
 
 namespace essentialUIKitTry.Views
 {
@@ -22,12 +26,75 @@ namespace essentialUIKitTry.Views
 
         Locker locker;
         bool photoTaken = false;
+        HubConnection connection;
         public LockerProfilePage(int lockerId)
         {
             this.InitializeComponent();
+
             InitializeLocker(lockerId);
+            ConfigSignalR();
             initializePageComponent();
             SetLocker(lockerId);
+        }
+
+
+        async void ConfigSignalR()
+        {
+            var results = await AzureApi.Negotiate();
+            JObject json = JObject.Parse(results);
+            var url = json["url"].ToString();
+            var token = json["accessToken"].ToString();
+
+            connection = new HubConnectionBuilder().WithUrl(url, options =>
+            {
+                options.AccessTokenProvider = () => Task.FromResult(token);
+            })
+             .WithAutomaticReconnect().Build();
+
+
+            connection.On<object>("photoReady", (item) =>
+            {
+                if (locker.Id == Integer.ParseInt(item.ToString()))
+                {
+                    AzureApi.TakeLockerCameraPhoto(locker.Id + "");
+                    photoTaken = true;
+                    SetLocker(locker.Id);
+                }
+
+            });
+            connection.On<object>("available", (item) =>
+            {
+                string itemString = item.ToString();
+                Locker lockerItem = JsonConvert.DeserializeObject<Locker>(itemString);
+                if (locker.Id == lockerItem.Id)
+                {
+                    locker.available = true;
+                    locker.Id = 0;
+                    displayLockerRealeasedAlert();
+                    connection.StopAsync();
+                    Navigation.PopAsync();
+                }
+
+            });
+
+
+            try
+            {
+                await connection.StartAsync();
+            }
+            catch (System.Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+
+        }
+
+
+
+        private async void displayLockerRealeasedAlert()
+        {
+            await DisplayAlert("This Locker has been released", "cannot complete action", "OK");
+
         }
 
         private void initializePageComponent()
@@ -94,43 +161,85 @@ namespace essentialUIKitTry.Views
             LockUnlockBtn.Text = locker.locked ? "Unlock" : "Lock";
 
         }
-        void HandleTakeAPhotoBtn(object sender, System.EventArgs e)
+        async void HandleTakeAPhotoBtn(object sender, System.EventArgs e)
         {
-            photoTaken = true;
-            SetLocker(this.locker.Id);
-            AzureApi.TakeLockerPhoto(this.locker.Id + "");
-        }
-       void HandleLockUnlockBtn(object sender, System.EventArgs e)
-        {
-
-            if (!this.locker.locked)
+            if (!locker.available)
             {
-                AzureApi.SetLock(this.locker);
-                this.locker.locked = true;
+                try
+                {
+                    await AzureApi.sendSignalToTakePhoto(locker.Id);
+                } catch
+                {
+                  //  await DisplayAlert("Failed to Take photo", "check with Admin", "OK");
+
+                }
+
             }
-            else
-            { 
-                AzureApi.SetUnlock(this.locker);
-                this.locker.locked = false;
+
+
+        }
+        void HandleLockUnlockBtn(object sender, System.EventArgs e)
+        {
+            if (!locker.available)
+            {
+                if (!this.locker.locked)
+                {
+                    AzureApi.SetLock(this.locker);
+                    this.locker.locked = true;
+                }
+                else
+                {
+                    AzureApi.SetUnlock(this.locker);
+                    this.locker.locked = false;
+                }
+                SetLocker(this.locker.Id);
             }
-            SetLocker(this.locker.Id);
         }
         async void HandleReleaseBtn(object sender, System.EventArgs e)
         {
-            bool answer = await DisplayAlert("You will not be refunded for the remaining time on the clock", "are you sure you want to release the locker", "Yes", "No");
-            if (answer)
+            if (!locker.available)
             {
-                AzureApi.SetAvailable(this.locker);
-                this.locker.available = true;
-                await Navigation.PopAsync();
+                bool answer = true;
+                if (!App.m_adminMode)
+                    answer = await DisplayAlert("You will not be refunded for the remaining time on the clock", "are you sure you want to release the locker", "Yes", "No");
+                if (answer)
+                {
+                    AzureApi.SetAvailable(this.locker);
+                    this.locker.available = true;
+                    this.locker.Id = 0;
+                    await connection.StopAsync();
+                    await Navigation.PopAsync();
+                }
             }
 
         }
 
-        void Navigate_To_Photo(object sender, System.EventArgs e)
+        async void Navigate_To_Photo(object sender, System.EventArgs e)
         {
-            if(photoTaken)
-                Navigation.PushAsync(new InsideALockerImage(this.locker.Id + ""));
+            if (!locker.available && photoTaken)
+            {
+
+                await connection.StopAsync();
+                await Navigation.PushAsync(new InsideALockerImage(this.locker.Id + ""));
+
+            }
         }
-    }
+
+
+        protected override void OnDisappearing()
+        {
+
+            connection.StopAsync();
+            base.OnDisappearing();
+        }
+
+        protected override void OnAppearing()
+        {
+
+            ConfigSignalR();
+            base.OnAppearing();
+        }
+
+
+    } 
 }

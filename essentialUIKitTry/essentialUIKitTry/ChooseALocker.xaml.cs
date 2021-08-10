@@ -50,7 +50,7 @@ namespace essentialUIKitTry
             {
                 options.AccessTokenProvider = () => Task.FromResult(token);
             })
-             .Build();
+             .WithAutomaticReconnect().Build();
 
             connection.On<object>("Occupy", (item) =>
             {
@@ -60,10 +60,6 @@ namespace essentialUIKitTry
             connection.On<object>("available", (item) =>
             {
                 SetLockerList();
-                if(NavigationPage.CurrentPageProperty == LockerProfilePage.NavigationProperty)
-                {
-                    Navigation.PopAsync();
-                }
             });
 
 
@@ -82,6 +78,10 @@ namespace essentialUIKitTry
                 SetLockerList();
             });
 
+            connection.Closed += async (exception) =>
+            {
+                ConfigSignalR();
+            };
 
             try
             {
@@ -112,7 +112,7 @@ namespace essentialUIKitTry
                 var claims = data.Claims.ToList();
                
                 App.m_adminMode = data.Claims.FirstOrDefault(x => x.Type.Equals("surname")).Value == "ADMIN";
-                userBalance.user_key = data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value;
+                 userBalance.user_key = data.Claims.FirstOrDefault(x => x.Type.Equals("email")).Value;
                 userBalance.balance = AzureApi.GetBalance(userBalance.user_key);
                 if (data != null)
                 {
@@ -135,7 +135,7 @@ namespace essentialUIKitTry
 
 
         
-        Button getBtnForLocker(Locker locker, int num)
+        Button getBtnForLocker(Locker locker)
         {
             int btnTimingFontSize = 8;
             int btnAvailableFontSize = 12;
@@ -143,7 +143,7 @@ namespace essentialUIKitTry
             int btn_height = 80;
             Button tmp_btn = new Button()
             {
-                Text = "L" + num,
+                Text = "L" + locker.Id,
                 StyleId = "" + locker.Id,
                 WidthRequest = btn_width,
                 HeightRequest = btn_height,
@@ -183,9 +183,8 @@ namespace essentialUIKitTry
             ButtonsRow2.Children.Clear();
             ButtonsRow3.Children.Clear();
             ButtonsRow4.Children.Clear();
-            //ChooseALockerMainStack.Children.Clear();
-
-            List<Locker> lockersList = AzureApi.GetAllLockers();
+         
+            List<Locker> lockersList = AzureApi.GetAllLockers().OrderBy(lck => lck.Id).ToList();
             for (int rowIdx = 0; rowIdx < numOfRows; rowIdx++)
             {
                 lockerRows[rowIdx].Clear();
@@ -197,10 +196,10 @@ namespace essentialUIKitTry
             }
             for (int idxInRow = 0; idxInRow < lockersInRow; idxInRow++)
             {
-                Button btn1 = getBtnForLocker(lockerRows[0][idxInRow], 0 * idxInRow + idxInRow + 1);
-                Button btn2 = getBtnForLocker(lockerRows[1][idxInRow], 1 * idxInRow + idxInRow + 1);
-                Button btn3 = getBtnForLocker(lockerRows[2][idxInRow], 2 * idxInRow + idxInRow + 1);
-                Button btn4 = getBtnForLocker(lockerRows[3][idxInRow], 3 * idxInRow + idxInRow + 1);
+                Button btn1 = getBtnForLocker(lockerRows[0][idxInRow]);
+                Button btn2 = getBtnForLocker(lockerRows[1][idxInRow]);
+                Button btn3 = getBtnForLocker(lockerRows[2][idxInRow]);
+                Button btn4 = getBtnForLocker(lockerRows[3][idxInRow]);
 
                 btn1.Clicked += Locker_ClickedAsync;
                 btn2.Clicked += Locker_ClickedAsync;
@@ -235,11 +234,18 @@ namespace essentialUIKitTry
                 AzureApi.SetUserBalance(userBalance);
                 this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
             }
-            
+            else
+            {
+                await DisplayAlert("Failed to recharge", "Please choose value with no fraction", "OK");
+                RechargeBalanceButtonClicked(sender, e);
+
+            }
+
         }
 
         async void NavigateToCostSelectionPage(object sender, System.EventArgs e)
         {
+            
             await Navigation.PushAsync(new SetCostsMainPage());
         }
 
@@ -251,12 +257,13 @@ namespace essentialUIKitTry
                 if (userBalance.balance < locker.price_per_hour * 0.5)
                     return false;
                 string result = await DisplayPromptAsync("occupy locker, id:" + locker.Id, "Insert time in minutes: between 30 and 999 mins", maxLength: 3, keyboard: Keyboard.Numeric);
-                if (result != null)
+                int intResult;
+                if (result != null && int.TryParse(result, out intResult) && intResult >= 30)
                 {
                     double minutesToHours = double.Parse(result) / 60;
                     if (userBalance.balance < locker.price_per_hour * minutesToHours)
                         return false;
-                    bool answer = await DisplayAlert("You will be charged " + locker.price_per_hour * minutesToHours + " NIS", "Would you like to continue?", "Yes", "No");
+                    bool answer = await DisplayAlert("You will be charged " + String.Format("{0:0.00}",locker.price_per_hour * minutesToHours )+ " NIS", "Would you like to continue?", "Yes", "No");
                     if (answer)
                     {
                         locker.user_key = userBalance.user_key;
@@ -265,8 +272,27 @@ namespace essentialUIKitTry
                         userBalance.balance -= (locker.price_per_hour * minutesToHours);
                         AzureApi.SetUserBalance(userBalance);
                         this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
+                        
                         await Navigation.PushAsync(new Locker1OrderedSuccess(locker.Id, authenticationResult));
                     }
+                }
+                else if (result != null)
+                {
+                    await DisplayAlert("Wrong input", "please choose a number within the specified range with no fractions", "OK");
+                    await setTimeToOccupyLockerAlert(locker);
+                }
+            }
+            else
+            {
+                string result = await DisplayPromptAsync("occupy locker, id:" + locker.Id, "Insert time in minutes", maxLength: 3, keyboard: Keyboard.Numeric);
+                if (result != null)
+                {
+                    double minutesToHours = double.Parse(result) / 60;
+                    locker.user_key = userBalance.user_key;
+                    locker.release_time = DateTimeOffset.Now.AddHours(minutesToHours);
+                    AzureApi.SetOccupy(locker);
+                   
+                    await Navigation.PushAsync(new Locker1OrderedSuccess(locker.Id, authenticationResult));
                 }
             }
             return true;
@@ -281,23 +307,26 @@ namespace essentialUIKitTry
 
             if (locker.available)
             {
-                bool canOccupy = await setTimeToOccupyLockerAlert(locker);
-                if (!canOccupy)
-                    await DisplayAlert("Please recharge", "You must have at least " + locker.price_per_hour * 0.5 + " to occupy this locker", "OK");
+                
+                if (!(await setTimeToOccupyLockerAlert(locker)))
+                    await DisplayAlert("Please recharge", "You don't have enough money to occupy locker", "OK");
                 
 
             }
             else if (locker.user_key == userBalance.user_key)
             {
+                
                 await Navigation.PushAsync(new LockerProfilePage(locker_id));
             }
 
             else if (!locker.available && App.m_adminMode)
             {
+               
                 await Navigation.PushAsync(new AdminClickedRedLockerPage(locker_id));
             }
             else
             {
+                
                 await Navigation.PushAsync(new Locker2OrderFailed("" + locker_id));
             }
             SetLockerList();
@@ -311,6 +340,7 @@ namespace essentialUIKitTry
                 Navigation.RemovePage(this);
                 IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
                 await App.AuthenticationClient.RemoveAsync(accounts.FirstOrDefault());
+                await connection.StopAsync();
                 await Navigation.PushAsync(new SimpleLoginPage());
             }
             catch (MsalClientException)

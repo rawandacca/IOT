@@ -11040,11 +11040,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.iOS\\essentialUIKitTry.iOS.csproj",
+      "projectUniqueName": "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry.iOS\\essentialUIKitTry.iOS.csproj",
       "projectName": "essentialUIKitTry.iOS",
-      "projectPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.iOS\\essentialUIKitTry.iOS.csproj",
+      "projectPath": "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry.iOS\\essentialUIKitTry.iOS.csproj",
       "packagesPath": "C:\\Users\\rawan\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry.iOS\\obj\\",
+      "outputPath": "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry.iOS\\obj\\",
       "projectStyle": "PackageReference",
       "skipContentFileWrite": true,
       "fallbackFolders": [
@@ -11067,8 +11067,8 @@
       "frameworks": {
         "xamarinios10": {
           "projectReferences": {
-            "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj": {
-              "projectPath": "C:\\Users\\rawan\\Music\\LockerStocker08.02-main\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj"
+            "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj": {
+              "projectPath": "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj"
             }
           }
         }

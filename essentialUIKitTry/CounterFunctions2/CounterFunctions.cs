@@ -117,7 +117,8 @@ namespace CounterFunctions
                 new SignalRMessage
                 {
                     Target = "setCosts",
-                    
+                    Arguments = new object[] { cloudLocker }
+
                 });
         }
 
@@ -368,12 +369,11 @@ namespace CounterFunctions
         }
 
         [FunctionName("get-locker-photo")]
-        public static async void GetLockerPhoto(
+        public static async Task<string> GetLockerPhoto(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "get-locker-photo/{id}")] HttpRequestMessage request,
             int id,
             ILogger log,
              [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
-
         {
             log.LogInformation("get Locker photo id -  " + id);
             await signalRMessages.AddAsync(
@@ -382,7 +382,26 @@ namespace CounterFunctions
                     Target = "TakePhoto",
                     Arguments = new object[] { id }
                 });
+            return "Success";
         }
+
+        [FunctionName("send-photo-notification")]
+        public static async Task<string> sendPhotoNotofication(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "send-photo-notification/{id}")] HttpRequestMessage request,
+            int id,
+            ILogger log,
+             [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages)
+        {
+            log.LogInformation("sendPhotoNotofication -  " + id);
+            await signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "photoReady",
+                    Arguments = new object[] { id }
+                });
+            return "Success";
+        }
+
 
     }
 }

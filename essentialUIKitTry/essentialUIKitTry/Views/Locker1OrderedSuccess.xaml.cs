@@ -4,6 +4,7 @@ using System;
 using Xamarin.Forms;
 using Xamarin.Forms.Internals;
 using Xamarin.Forms.Xaml;
+using Microsoft.AspNetCore.SignalR.Client;
 
 namespace essentialUIKitTry.Views
 {
@@ -36,23 +37,25 @@ namespace essentialUIKitTry.Views
             lbl1.Text = "LOCKER ID: " + lockerId;
             lbl2.Text = "You have successfully ordered locker " +  lockerId + ". Enjoy!";
         }
-        void OrderProfileClicked(object sender, System.EventArgs e)
+        async void OrderProfileClicked(object sender, System.EventArgs e)
         {
-            Navigation.PushAsync(new LockerProfilePage(this.lockerId));
+            if (await AzureApi.IsAvailableAsync(lockerId))
+            {
+                await Navigation.PushAsync(new LockerProfilePage(this.lockerId));
+            }
+            else
+            {
+                await DisplayAlert("This Locker has been released", "cannot complete action", "OK");
+                await Navigation.PopAsync(); 
+
+            }
         }
         async void Back_To_Menu_Clicked(object sender, EventArgs e)
         {
-           // AuthenticationResult result;
-
+ 
             try
             {
-                /*result = await App.AuthenticationClient
-                    .AcquireTokenInteractive(Constants.Scopes)
-                    .WithPrompt(Prompt.ForceLogin)
-                    .WithParentActivityOrWindow(App.UIParent)
-                    .ExecuteAsync();*/
-
-                await Navigation.PopAsync();
+               await Navigation.PopAsync();
             }
             catch (MsalClientException)
             {
