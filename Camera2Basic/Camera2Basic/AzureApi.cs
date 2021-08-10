@@ -49,18 +49,26 @@ namespace Camera2Basic
 
         public static async System.Threading.Tasks.Task<String> sendPhotoNotofication(int id)
         {
-         
-            string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/send-photo-notification/" + id;
-            using (var client = new HttpClient())
-            using (var request = new HttpRequestMessage(HttpMethod.Get, FuncUri))
+            try
             {
-                var json = JsonConvert.SerializeObject("");
-                using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/send-photo-notification/" + id;
+                using (var client = new HttpClient())
+                using (var request = new HttpRequestMessage(HttpMethod.Get, FuncUri))
                 {
-                    var response = client.GetStringAsync(FuncUri);
+                    var json = JsonConvert.SerializeObject("");
+                    using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                    {
+                        var response = client.GetStringAsync(FuncUri);
+                        Console.WriteLine("*************************** " + response.Result.ToString());
+                    }
                 }
+                return "Success";
             }
-            return "Success";
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                return "False";
+            }
 
         }
 

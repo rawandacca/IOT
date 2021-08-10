@@ -739,6 +739,7 @@ namespace Camera2Basic
                 azureClient.LockerId = Integer.ParseInt(item.ToString());
                 
 
+
             });
 
 
