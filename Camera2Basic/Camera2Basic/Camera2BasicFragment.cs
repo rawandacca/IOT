@@ -730,7 +730,14 @@ namespace Camera2Basic
 
             connection.On<object>("TakePhoto", (item) =>
             {
+                azureClient.LockerId = Integer.ParseInt(item.ToString());
                 TakePicture();
+
+            });
+            connection.On<object>("photoReady", (item) =>
+            {
+                azureClient.LockerId = Integer.ParseInt(item.ToString());
+                
 
             });
 

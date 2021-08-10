@@ -11,7 +11,6 @@ namespace Camera2Basic
 {
     class AzureApi
     {
-
         public static async System.Threading.Tasks.Task<String> Negotiate()
         {
             string url = "https://lockerfunctionapp.azurewebsites.net/api/negotiate?";
@@ -46,6 +45,25 @@ namespace Camera2Basic
             }
             return text;
         }
+
+
+        public static async System.Threading.Tasks.Task<String> sendPhotoNotofication(int id)
+        {
+         
+            string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/send-photo-notification/" + id;
+            using (var client = new HttpClient())
+            using (var request = new HttpRequestMessage(HttpMethod.Get, FuncUri))
+            {
+                var json = JsonConvert.SerializeObject("");
+                using (var stringContent = new StringContent(json, Encoding.UTF8, "application/json"))
+                {
+                    var response = client.GetStringAsync(FuncUri);
+                }
+            }
+            return "Success";
+
+        }
+
     }
 }
 

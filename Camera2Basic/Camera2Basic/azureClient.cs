@@ -12,6 +12,7 @@ namespace Camera2Basic
         private static readonly HttpClient client = new HttpClient();
         private HubConnection connection;
         private static azureClient instance = null ;
+        public static int LockerId = 0;
 
         private azureClient() {
             // ConfigSignalR();
