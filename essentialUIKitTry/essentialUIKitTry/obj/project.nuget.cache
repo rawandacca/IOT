@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "fg2ek2hR1uq3tbdlZbo+pJ59156PGsOF2EjuOOCnAr6ae8q7apnQ04rhDOJ0IF+1MX14VTL7+dH5/Sohchxh4w==",
+  "dgSpecHash": "KA5KzSIA+emq/GgTIce7/4J0kozBSi7LNaHvr27oFhu8CYZApEWF377/ZTX7Bjr2mhSVWaInAh1OmpwRUoVqVA==",
   "success": true,
-  "projectFilePath": "C:\\Users\\rawan\\Documents\\sadna\\LockerStocker08.02-main\\IOT\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj",
+  "projectFilePath": "C:\\Users\\rawan\\Documents\\sadna\\10.8.2021\\essentialUIKitTry\\essentialUIKitTry\\essentialUIKitTry.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\rawan\\.nuget\\packages\\azure.core\\1.15.0\\azure.core.1.15.0.nupkg.sha512",
     "C:\\Users\\rawan\\.nuget\\packages\\azure.storage.blobs\\12.9.1\\azure.storage.blobs.12.9.1.nupkg.sha512",

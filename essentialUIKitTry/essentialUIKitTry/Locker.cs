@@ -11,6 +11,7 @@ namespace CounterFunctions
         public int Id { get; set; }
         public Boolean available { get; set; } = true;
         public Boolean locked { get; set; } = true;
+        public Boolean photo_taken { get; set; } = false;
         public Double price_per_hour { get; set; } = 0;
         public string user_key { get; set; } = "";
         public System.DateTimeOffset release_time { get; set; }

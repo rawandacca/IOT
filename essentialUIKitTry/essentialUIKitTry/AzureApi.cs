@@ -61,6 +61,13 @@ namespace essentialUIKitTry
                 }
             }
         }
+
+        internal static void setPhotoTaken(Locker locker)
+        {
+            var FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/set-photo-taken";
+            setLockerInCloud(locker, FuncUri);
+        }
+
         public static List<Locker> GetAllLockers()
         {
             string FuncUri = "https://lockerfunctionapp.azurewebsites.net/api/get-all-lockers";

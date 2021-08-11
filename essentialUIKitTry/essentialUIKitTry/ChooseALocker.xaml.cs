@@ -228,17 +228,20 @@ namespace essentialUIKitTry
         {
             string result = await DisplayPromptAsync("Recharge balance", "how much would you like to recharge? maximum is 999 nis", maxLength: 3 , keyboard: Keyboard.Numeric);
             int balance;
-            if (int.TryParse(result, out balance))
+            if (result != null)
             {
-                userBalance.balance += balance;
-                AzureApi.SetUserBalance(userBalance);
-                this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
-            }
-            else
-            {
-                await DisplayAlert("Failed to recharge", "Please choose value with no fraction", "OK");
-                RechargeBalanceButtonClicked(sender, e);
+                if (int.TryParse(result, out balance))
+                {
+                    userBalance.balance += balance;
+                    AzureApi.SetUserBalance(userBalance);
+                    this.balance.Text = $"You have { String.Format("{0:0.00}", userBalance.balance) } Shekels in your account.";
+                }
+                else
+                {
+                    await DisplayAlert("Failed to recharge", "Please choose value with no fraction", "OK");
+                    RechargeBalanceButtonClicked(sender, e);
 
+                }
             }
 
         }
@@ -285,7 +288,8 @@ namespace essentialUIKitTry
             else
             {
                 string result = await DisplayPromptAsync("occupy locker, id:" + locker.Id, "Insert time in minutes", maxLength: 3, keyboard: Keyboard.Numeric);
-                if (result != null)
+                int intResult;
+                if (result != null && int.TryParse(result, out intResult))
                 {
                     double minutesToHours = double.Parse(result) / 60;
                     locker.user_key = userBalance.user_key;
@@ -293,6 +297,11 @@ namespace essentialUIKitTry
                     AzureApi.SetOccupy(locker);
                    
                     await Navigation.PushAsync(new Locker1OrderedSuccess(locker.Id, authenticationResult));
+                }
+                else if (result != null)
+                {
+                    await DisplayAlert("Wrong input", "please choose a whole number ", "OK");
+                    await setTimeToOccupyLockerAlert(locker);
                 }
             }
             return true;
@@ -336,7 +345,7 @@ namespace essentialUIKitTry
             AuthenticationResult result;
             try
             {
-               
+
                 Navigation.RemovePage(this);
                 IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
                 await App.AuthenticationClient.RemoveAsync(accounts.FirstOrDefault());

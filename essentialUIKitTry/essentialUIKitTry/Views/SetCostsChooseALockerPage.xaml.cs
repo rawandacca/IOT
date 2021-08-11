@@ -85,6 +85,13 @@ namespace essentialUIKitTry
             }
         }
 
+
+        protected override void OnAppearing()
+        {
+
+            SetLockerList();
+            base.OnAppearing();
+        }
         async void NavigateToCostSelectionPage(object sender, System.EventArgs e) {
             await Navigation.PushAsync(new SetCostsMainPage());
         }

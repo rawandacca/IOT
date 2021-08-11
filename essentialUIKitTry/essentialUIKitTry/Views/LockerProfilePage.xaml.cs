@@ -25,14 +25,13 @@ namespace essentialUIKitTry.Views
         /// </summary>
 
         Locker locker;
-        bool photoTaken = false;
         HubConnection connection;
         public LockerProfilePage(int lockerId)
         {
             this.InitializeComponent();
 
             InitializeLocker(lockerId);
-            ConfigSignalR();
+            //ConfigSignalR();
             initializePageComponent();
             SetLocker(lockerId);
         }
@@ -57,8 +56,34 @@ namespace essentialUIKitTry.Views
                 if (locker.Id == Integer.ParseInt(item.ToString()))
                 {
                     AzureApi.TakeLockerCameraPhoto(locker.Id + "");
-                    photoTaken = true;
+                    locker.photo_taken = true;
+                    AzureApi.setPhotoTaken(locker);
                     SetLocker(locker.Id);
+                }
+
+            });
+            connection.On<object>("unlock", (item) =>
+            {
+                string itemString = item.ToString();
+                Locker lockerItem = JsonConvert.DeserializeObject<Locker>(itemString);
+                if (locker.Id == lockerItem.Id)
+                {
+                    this.locker.locked = false;
+                    SetLocker(locker.Id);
+
+                }
+
+            });
+
+            connection.On<object>("lock", (item) =>
+            {
+                string itemString = item.ToString();
+                Locker lockerItem = JsonConvert.DeserializeObject<Locker>(itemString);
+                if (locker.Id == lockerItem.Id)
+                {
+                    this.locker.locked = true;
+                    SetLocker(locker.Id);
+
                 }
 
             });
@@ -138,7 +163,7 @@ namespace essentialUIKitTry.Views
         {
 
             LastPhotoLinkLabel.Text = "No Photo Available";
-            if (photoTaken)
+            if (locker.photo_taken)
             {
                 LastPhotoLinkLabel.Text = "Last photo of the locker";
             }
@@ -168,9 +193,10 @@ namespace essentialUIKitTry.Views
                 try
                 {
                     await AzureApi.sendSignalToTakePhoto(locker.Id);
-                } catch
+                }
+                catch
                 {
-                  //  await DisplayAlert("Failed to Take photo", "check with Admin", "OK");
+                    //  await DisplayAlert("Failed to Take photo", "check with Admin", "OK");
 
                 }
 
@@ -216,7 +242,7 @@ namespace essentialUIKitTry.Views
 
         async void Navigate_To_Photo(object sender, System.EventArgs e)
         {
-            if (!locker.available && photoTaken)
+            if (!locker.available && locker.photo_taken)
             {
 
                 await connection.StopAsync();
@@ -241,5 +267,5 @@ namespace essentialUIKitTry.Views
         }
 
 
-    } 
+    }
 }

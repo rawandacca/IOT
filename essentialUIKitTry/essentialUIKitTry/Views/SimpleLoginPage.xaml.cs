@@ -31,8 +31,12 @@ namespace essentialUIKitTry.Views
                 // Look for existing account
                 //var accounts = await App.AuthenticationClient.GetAccountsAsync();
                  IEnumerable<IAccount> accounts = await App.AuthenticationClient.GetAccountsAsync();
-                if (accounts.Count() >= 2)
+                if (accounts.Count() >= 1)
                     this.SignInButton.IsVisible = false;
+                else
+                {
+                    this.SignInButton.IsVisible = true;
+                }
                 //if (accounts.Count() >= 1)
                 //{
                     AuthenticationResult result = await App.AuthenticationClient

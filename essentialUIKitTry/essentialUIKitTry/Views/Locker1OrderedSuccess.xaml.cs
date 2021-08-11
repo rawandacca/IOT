@@ -39,7 +39,7 @@ namespace essentialUIKitTry.Views
         }
         async void OrderProfileClicked(object sender, System.EventArgs e)
         {
-            if (await AzureApi.IsAvailableAsync(lockerId))
+            if (!await AzureApi.IsAvailableAsync(lockerId))
             {
                 await Navigation.PushAsync(new LockerProfilePage(this.lockerId));
             }

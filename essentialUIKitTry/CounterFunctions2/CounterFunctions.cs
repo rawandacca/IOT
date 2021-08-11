@@ -88,12 +88,37 @@ namespace CounterFunctions
             cloudLocker.available = true;
             cloudLocker.release_time = DateTimeOffset.Now.AddHours(0);
             cloudLocker.user_key = "";
+            cloudLocker.photo_taken = false;
             TableOperation updateOperation = TableOperation.Replace(cloudLocker);
             await cloudTable.ExecuteAsync(updateOperation);
             await signalRMessages.AddAsync(
                 new SignalRMessage
                 {
                     Target = "available",
+                    Arguments = new object[] { cloudLocker }
+                });
+        }
+
+
+        [FunctionName("set-photo-taken")]
+        public static async Task SetPhotoTakene(
+    [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequestMessage request,
+    [Table("LockerRoom")] CloudTable cloudTable,
+    [SignalR(HubName = "CounterHub")] IAsyncCollector<SignalRMessage> signalRMessages,
+    ILogger log)
+        {
+            log.LogInformation("Setting Available.");
+
+            Locker counterRequest = await ExtractContent<Locker>(request);
+
+            Locker cloudLocker = await GetOrCreateCounter(cloudTable, counterRequest.Id);
+            cloudLocker.photo_taken = true;
+            TableOperation updateOperation = TableOperation.Replace(cloudLocker);
+            await cloudTable.ExecuteAsync(updateOperation);
+            await signalRMessages.AddAsync(
+                new SignalRMessage
+                {
+                    Target = "photoTaken",
                     Arguments = new object[] { cloudLocker }
                 });
         }
@@ -344,6 +369,7 @@ namespace CounterFunctions
             locker.locked = true;
             locker.release_time = DateTimeOffset.Now.AddHours(0);
             locker.user_key = "";
+            locker.photo_taken = false;
             TableOperation updateOperation = TableOperation.Replace(locker);
             await cloudTable.ExecuteAsync(updateOperation);
             await signalRMessages.AddAsync(
